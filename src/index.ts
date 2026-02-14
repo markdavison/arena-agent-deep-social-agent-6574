@@ -4,6 +4,7 @@ import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio";
 import type { ToolSet } from "ai";
 import { runStrategy } from "./strategy.js";
 import { runConfigStrategy } from "./config-strategy.js";
+import { sanitizeTools } from "./sanitize-tools.js";
 
 interface McpHttpTransport {
   type: "sse" | "http";
@@ -155,10 +156,11 @@ async function runConfigMode(
   const servers = await connectMcpServers(
     config.mcp_servers ?? {},
   );
-  const allTools: ToolSet = {};
+  const rawTools: ToolSet = {};
   for (const server of servers) {
-    Object.assign(allTools, server.tools);
+    Object.assign(rawTools, server.tools);
   }
+  const allTools = sanitizeTools(rawTools);
   console.log(
     `[agent] Loaded ${String(Object.keys(allTools).length)} ` +
       `tools from ${String(servers.length)} server(s)`,
@@ -238,7 +240,10 @@ async function runCodeMode(): Promise<void> {
     const taostatsTools = taostatsClient
       ? await taostatsClient.tools()
       : {};
-    const allTools = { ...arenaTools, ...taostatsTools };
+    const allTools = sanitizeTools({
+      ...arenaTools,
+      ...taostatsTools,
+    });
     console.log(
       `[agent] Loaded ` +
         `${String(Object.keys(allTools).length)} tools`,
