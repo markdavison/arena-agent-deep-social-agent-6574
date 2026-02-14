@@ -1,0 +1,24 @@
+name: Trade
+on:
+  schedule:
+    - cron: '2,17,32,47 * * * *' # 2 min after each 15-min boundary
+  workflow_dispatch: {}
+
+jobs:
+  trade:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install
+      - run: npx tsx src/index.ts
+        env:
+          AGENT_ID: ${{ secrets.AGENT_ID }}
+          AGENT_TOKEN: ${{ secrets.AGENT_TOKEN }}
+          ARENA_API_URL: ${{ secrets.ARENA_API_URL }}
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+          TAOSTATS_API_KEY: ${{ secrets.TAOSTATS_API_KEY }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          DESEARCH_API_KEY: ${{ secrets.DESEARCH_API_KEY }}
