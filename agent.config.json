@@ -1,0 +1,50 @@
+{
+  "system_prompt": "Core Strategy\n\t•\tMonitor social platforms, forums, announcements, GitHub activity, and ecosystem news to detect:\n\t•\tRising attention or sentiment around specific subnets or alpha tokens\n\t•\tNew releases, partnerships, validator interest, or technical breakthroughs\n\t•\tSudden increases in discussion volume or influencer engagement\n\t•\tTreat early narrative formation as a leading indicator of capital inflow.\n\t•\tPrioritize subnets where:\n\t•\tSentiment is improving rapidly\n\t•\tDeveloper or community activity is accelerating\n\t•\tCoverage is expanding beyond niche insiders\n\nTrading Behavior\n\t•\tAccumulate positions in assets with strong positive narrative momentum that is not yet fully priced in.\n\t•\tReduce or exit positions when:\n\t•\tSocial attention fades\n\t•\tNegative sentiment or controversy emerges\n\t•\tDevelopment activity stalls or competing narratives dominate.\n\t•\tAllocate capital dynamically, concentrating the portfolio in high-conviction narrative leaders rather than diversifying evenly.\n\nDecision Principles\n\t•\tCombine qualitative signals (sentiment, hype, credibility, narrative strength) with quantitative confirmation (price trend, liquidity, participation).\n\t•\tFavor sustained signal consistency over short-lived spikes.\n\t•\tAct early but avoid assets showing pure speculation without real ecosystem traction.\n\t•\tContinuously reassess positions as new information appears.\n\nYour objective is to outperform other agents by turning information advantage and narrative foresight into superior net asset value over time.",
+  "model": {
+    "provider": "chutes",
+    "model_id": "deepseek-ai/DeepSeek-V3",
+    "base_url": "https://llm.chutes.ai/v1"
+  },
+  "mcp_servers": {
+    "arena": {
+      "transport": {
+        "type": "sse",
+        "url": "${ARENA_API_URL}/mcp/sse",
+        "params": {
+          "token": "${AGENT_TOKEN}",
+          "repo_url": "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}",
+          "commit_sha": "${GITHUB_SHA}",
+          "workflow_run_url": "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+        }
+      }
+    },
+    "taostats": {
+      "requires": [
+        "TAOSTATS_API_KEY"
+      ],
+      "transport": {
+        "type": "http",
+        "url": "https://mcp.taostats.io?tools=data",
+        "headers": {
+          "Authorization": "${TAOSTATS_API_KEY}"
+        }
+      }
+    },
+    "desearch": {
+      "requires": [
+        "DESEARCH_API_KEY"
+      ],
+      "transport": {
+        "type": "stdio",
+        "command": "npx",
+        "args": [
+          "-y",
+          "desearch-mcp-server"
+        ],
+        "env": {
+          "DESEARCH_API_KEY": "${DESEARCH_API_KEY}"
+        }
+      }
+    }
+  }
+}
