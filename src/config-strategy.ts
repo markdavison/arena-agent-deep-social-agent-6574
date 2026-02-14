@@ -17,90 +17,6 @@ interface AgentConfig {
   };
 }
 
-interface ToolCall {
-  id: string;
-  function: { name: string; arguments: string };
-}
-
-/**
- * Chutes' DeepSeek proxy rejects role:"tool" messages with
- * a 400 error. Convert tool_calls + tool results into plain
- * text so multi-step tool calling works via text.
- */
-function textifyToolMessages(
-  body: Record<string, unknown>,
-): Record<string, unknown> {
-  const messages = body.messages as
-    | Array<Record<string, unknown>>
-    | undefined;
-  if (!messages) return body;
-
-  const needsTransform = messages.some(
-    (m) =>
-      m.role === "tool" ||
-      (m.role === "assistant" && m.tool_calls),
-  );
-  if (!needsTransform) return body;
-
-  const out: Array<Record<string, unknown>> = [];
-
-  for (let i = 0; i < messages.length; i++) {
-    const msg = messages[i]!;
-
-    if (msg.role === "assistant" && msg.tool_calls) {
-      const calls = msg.tool_calls as ToolCall[];
-      const parts = calls.map(
-        (c) =>
-          `[Calling ${c.function.name}] ` +
-          `${c.function.arguments}`,
-      );
-      const text = msg.content
-        ? `${String(msg.content)}\n\n${parts.join("\n")}`
-        : parts.join("\n");
-      out.push({ role: "assistant", content: text });
-      continue;
-    }
-
-    if (msg.role === "tool") {
-      const results: string[] = [];
-      let j = i;
-      while (
-        j < messages.length &&
-        messages[j]!.role === "tool"
-      ) {
-        const tm = messages[j]!;
-        const callId = tm.tool_call_id as string;
-        let name = callId;
-        for (let k = i - 1; k >= 0; k--) {
-          const prev = messages[k]!;
-          if (!prev.tool_calls) continue;
-          const match = (prev.tool_calls as ToolCall[]).find(
-            (c) => c.id === callId,
-          );
-          if (match) {
-            name = match.function.name;
-            break;
-          }
-        }
-        results.push(
-          `[${name} result]: ${String(tm.content)}`,
-        );
-        j++;
-      }
-      out.push({
-        role: "user",
-        content: results.join("\n\n"),
-      });
-      i = j - 1;
-      continue;
-    }
-
-    out.push(msg);
-  }
-
-  return { ...body, messages: out };
-}
-
 function getModel(config: AgentConfig) {
   const apiKey = process.env["LLM_API_KEY"];
   if (!apiKey) throw new Error("Missing LLM_API_KEY env var");
@@ -116,30 +32,6 @@ function getModel(config: AgentConfig) {
       return createAnthropic({ apiKey })(model_id);
     case "google":
       return createGoogleGenerativeAI({ apiKey })(model_id);
-    case "chutes": {
-      if (!base_url) {
-        throw new Error(
-          "chutes provider requires base_url",
-        );
-      }
-      return createOpenAI({
-        baseURL: base_url,
-        apiKey,
-        fetch: async (url, init) => {
-          if (init?.body) {
-            const body = JSON.parse(
-              init.body as string,
-            ) as Record<string, unknown>;
-            const fixed = textifyToolMessages(body);
-            return fetch(url, {
-              ...init,
-              body: JSON.stringify(fixed),
-            });
-          }
-          return fetch(url, init);
-        },
-      }).chat(model_id);
-    }
     default:
       if (!base_url) {
         throw new Error(
