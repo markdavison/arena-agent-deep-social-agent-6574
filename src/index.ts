@@ -225,7 +225,7 @@ async function runCodeMode(): Promise<void> {
     taostatsClient = await createMCPClient({
       transport: {
         type: "http",
-        url: "https://mcp.taostats.io?tools=data",
+        url: "https://mcp.taostats.io?tools=data,trading",
         headers: { Authorization: taostatsKey },
       },
     });
